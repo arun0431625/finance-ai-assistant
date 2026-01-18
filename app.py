@@ -86,9 +86,13 @@ with st.sidebar:
     st.write(f"Usage: {st.session_state.usage_count}/{FREE_USAGE_LIMIT}")
 
     if st.button("Logout"):
-        for k in list(st.session_state.keys()):
-            del st.session_state[k]
+        st.session_state.logged_in = False
+        st.session_state.user_email = None
+        st.session_state.messages = []
+        st.session_state.reco_result = None
+        st.session_state.combined_df = None
         st.rerun()
+
 
 # ==================================================
 # ================== MODE =========================
@@ -320,3 +324,4 @@ if mode == "Excel AI":
                 data=output.getvalue(),
                 file_name="bank_reconciliation.xlsx"
             )
+
