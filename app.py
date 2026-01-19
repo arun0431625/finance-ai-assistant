@@ -57,8 +57,8 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("💼 Finance AI Assistant")
-st.caption("Talk to an experienced finance professional")
+st.markdown("## 💼 Finance AI Assistant")
+st.caption("Your AI co-pilot for finance & accounting")
 
 # ==================================================
 # ================== LOGIN =========================
@@ -182,6 +182,9 @@ with st.sidebar:
         st.session_state.combined_df = None
         st.rerun()
 
+    st.divider()
+    st.caption("🚀 Pro plan coming soon: Unlimited AI + Advanced Reconciliation")
+
 if st.session_state.last_mode != mode:
     st.session_state.messages = []
     st.session_state.last_mode = mode
@@ -212,13 +215,35 @@ if mode in ["Finance Research", "Career Guide"]:
 
     if mode == "Finance Research":
         st.header("📊 Finance Research Assistant")
-        st.caption("Analyze companies like a senior finance professional. Get business model, risks, and future outlook.")
+        st.caption("Analyze companies, financials, risks, and future outlook.")
+        st.caption(
+            "⚠️ Educational use only. Please verify critical financial decisions with a qualified professional."
+        )
         st.divider()
 
     if mode == "Career Guide":
         st.header("🧭 Career Guide")
         st.caption("Get personalized finance & accounting career guidance based on your background and goals.")
         st.divider()
+
+    # 🔴 Phase-2 Patch: Empty state helper
+    if not st.session_state.messages and mode == "Finance Research":
+        st.info(
+            "💬 Ask about companies, markets, or financial analysis.\n\n"
+            "Examples:\n"
+            "- Analyze Tata Motors\n"
+            "- Is Reliance a good long-term investment?\n"
+            "- Explain ROE vs ROIC"
+        )
+
+    if not st.session_state.messages and mode == "Career Guide":
+        st.info(
+            "💬 Ask about finance & accounting careers.\n\n"
+            "Examples:\n"
+            "- Should I do CFA or MBA?\n"
+            "- What skills are needed for FP&A roles?\n"
+            "- Career path after B.Com"
+        )
 
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
@@ -282,6 +307,12 @@ if mode == "Excel AI":
 
     if excel_task == "Combine Files":
 
+        # 🔴 Phase-2 Patch: Helper text
+        st.info(
+            "📁 Upload 2 or more Excel files with the same column headers. "
+            "The tool will merge them into one combined file."
+        )
+
         uploaded_files = st.file_uploader(
             "Upload Excel files (same headers)",
             type=["xlsx"],
@@ -328,6 +359,12 @@ if mode == "Excel AI":
             )
 
     if excel_task == "Bank Reconciliation":
+
+        # 🔴 Phase-2 Patch: Helper text
+        st.info(
+            "🏦 Match bank statements with books using amount, date, and narration. "
+            "Start with amount only, then add date/narration for better accuracy."
+        )
 
         bank_file = st.file_uploader("Upload Bank Statement", type=["xlsx"])
         books_file = st.file_uploader("Upload Books Ledger", type=["xlsx"])
