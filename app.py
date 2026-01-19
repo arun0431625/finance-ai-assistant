@@ -4,6 +4,8 @@ import pandas as pd
 import io
 import os
 import json
+from datetime import datetime
+import csv
 from dotenv import load_dotenv
 
 # ==================================================
@@ -61,6 +63,47 @@ st.caption("Talk to an experienced finance professional")
 # ==================================================
 # ================== LOGIN =========================
 # ==================================================
+
+LOG_FILE = "user_activity_log.csv"
+
+def log_login(email):
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    file_exists = os.path.exists(LOG_FILE)
+
+    with open(LOG_FILE, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+
+        if not file_exists:
+            writer.writerow(["email", "login_time", "logout_time", "session_minutes"])
+
+        writer.writerow([email, now, "", ""])
+
+
+def log_logout(email):
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    if not os.path.exists(LOG_FILE):
+        return
+
+    df = pd.read_csv(LOG_FILE)
+
+    # last open session for this email
+    mask = (df["email"] == email) & (df["logout_time"].isna() | (df["logout_time"] == ""))
+
+    if mask.any():
+        idx = df[mask].index[-1]
+
+        login_time = datetime.strptime(df.loc[idx, "login_time"], "%Y-%m-%d %H:%M:%S")
+        logout_time = datetime.strptime(now, "%Y-%m-%d %H:%M:%S")
+
+        duration = round((logout_time - login_time).total_seconds() / 60, 2)
+
+        df.loc[idx, "logout_time"] = now
+        df.loc[idx, "session_minutes"] = duration
+
+        df.to_csv(LOG_FILE, index=False)
+
 def load_allowed_users():
     try:
         with open("allowed_users.json", "r") as f:
@@ -90,6 +133,7 @@ def login_ui():
 
         st.session_state.logged_in = True
         st.session_state.user_email = email_clean
+        log_login(email_clean)
         st.success("✅ Logged in successfully")
         st.rerun()
 
@@ -106,6 +150,8 @@ with st.sidebar:
     st.write(f"Usage: {st.session_state.usage_count}/{FREE_USAGE_LIMIT}")
 
     if st.button("Logout"):
+        log_logout(st.session_state.user_email)
+
         st.session_state.logged_in = False
         st.session_state.user_email = None
         st.session_state.messages = []
