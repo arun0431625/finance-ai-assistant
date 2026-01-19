@@ -1,6 +1,8 @@
 {
   "allowed_emails": [
     "arun@gmail.com",
-    "testing@gmail.com"
+    "testing@gmail.com",
+    "anyone@gmail.com"
   ]
 }
+
