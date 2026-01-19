@@ -39,7 +39,6 @@ FREE_USAGE_LIMIT = 5
 # ==================================================
 # ================== ENV SETUP =====================
 # ==================================================
-
 load_dotenv()
 
 api_key = os.getenv("GEMINI_API_KEY")
@@ -89,7 +88,6 @@ def log_logout(email):
 
     df = pd.read_csv(LOG_FILE)
 
-    # last open session for this email
     mask = (df["email"] == email) & (df["logout_time"].isna() | (df["logout_time"] == ""))
 
     if mask.any():
@@ -135,7 +133,19 @@ def login_ui():
         st.session_state.logged_in = True
         st.session_state.user_email = email_clean
         log_login(email_clean)
+
         st.success("✅ Logged in successfully")
+
+        st.info(
+            "👋 Welcome to Finance AI Assistant!\n\n"
+            "You can:\n"
+            "- Ask finance & accounting questions\n"
+            "- Get career guidance\n"
+            "- Combine Excel files\n"
+            "- Do basic bank reconciliation\n\n"
+            "Use the sidebar to choose a tool."
+        )
+
         st.rerun()
 
 if not st.session_state.logged_in:
@@ -145,7 +155,19 @@ if not st.session_state.logged_in:
 # ==================================================
 # ================== SIDEBAR ======================
 # ==================================================
+
 with st.sidebar:
+    st.markdown("## 💼 Finance AI Assistant")
+    st.caption("Your AI co-pilot for finance & accounting")
+    st.divider()
+
+    mode = st.selectbox(
+        "🧭 Choose a tool",
+        ["Finance Research", "Career Guide", "Excel AI"]
+    )
+
+    st.divider()
+
     st.markdown("### 👤 Account")
     st.write(st.session_state.user_email)
     st.write(f"Usage: {st.session_state.usage_count}/{FREE_USAGE_LIMIT}")
@@ -159,15 +181,6 @@ with st.sidebar:
         st.session_state.reco_result = None
         st.session_state.combined_df = None
         st.rerun()
-
-
-# ==================================================
-# ================== MODE =========================
-# ==================================================
-mode = st.selectbox(
-    "Choose Mode",
-    ["Finance Research", "Career Guide", "Excel AI"]
-)
 
 if st.session_state.last_mode != mode:
     st.session_state.messages = []
@@ -197,17 +210,24 @@ def build_prompt(mode, conversation):
 
 if mode in ["Finance Research", "Career Guide"]:
 
-    # --- Render existing chat history ---
+    if mode == "Finance Research":
+        st.header("📊 Finance Research Assistant")
+        st.caption("Analyze companies like a senior finance professional. Get business model, risks, and future outlook.")
+        st.divider()
+
+    if mode == "Career Guide":
+        st.header("🧭 Career Guide")
+        st.caption("Get personalized finance & accounting career guidance based on your background and goals.")
+        st.divider()
+
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
 
-    # --- Chat input ---
     user_input = st.chat_input("Type your message...")
 
     if user_input:
 
-        # --- Add & immediately show user message ---
         st.session_state.messages.append(
             {"role": "user", "content": user_input}
         )
@@ -215,7 +235,6 @@ if mode in ["Finance Research", "Career Guide"]:
         with st.chat_message("user"):
             st.write(user_input)
 
-        # --- Build conversation text ---
         conversation = ""
         for msg in st.session_state.messages:
             role = "User" if msg["role"] == "user" else "AI"
@@ -223,7 +242,6 @@ if mode in ["Finance Research", "Career Guide"]:
 
         full_prompt = build_prompt(mode, conversation)
 
-        # --- AI response with typing effect ---
         with st.chat_message("assistant"):
 
             placeholder = st.empty()
@@ -238,9 +256,8 @@ if mode in ["Finance Research", "Career Guide"]:
                 for char in reply:
                     typed_text += char
                     placeholder.markdown(typed_text)
-                    time.sleep(0.005)   # typing speed control
+                    time.sleep(0.005)
 
-                # --- Save assistant reply ---
                 st.session_state.messages.append(
                     {"role": "assistant", "content": reply}
                 )
@@ -249,21 +266,20 @@ if mode in ["Finance Research", "Career Guide"]:
                 st.error("AI service temporarily unavailable")
                 st.code(str(e))
 
-	# ==================================================
+# ==================================================
 # ================== EXCEL AI =====================
 # ==================================================
 if mode == "Excel AI":
 
-    st.header("📊 Excel AI Tools")
+    st.header("📁 Excel AI Tools")
+    st.caption("Automate common finance & accounting Excel tasks in seconds.")
+    st.divider()
 
     excel_task = st.selectbox(
         "Choose Task",
         ["Select", "Combine Files", "Bank Reconciliation"]
     )
 
-    # ==================================================
-    # ================= COMBINE FILES ==================
-    # ==================================================
     if excel_task == "Combine Files":
 
         uploaded_files = st.file_uploader(
@@ -311,9 +327,6 @@ if mode == "Excel AI":
                 file_name="combined_excel.xlsx"
             )
 
-    # ==================================================
-    # ================ BANK RECONCILIATION =============
-    # ==================================================
     if excel_task == "Bank Reconciliation":
 
         bank_file = st.file_uploader("Upload Bank Statement", type=["xlsx"])
