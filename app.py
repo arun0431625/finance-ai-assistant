@@ -163,7 +163,7 @@ with st.sidebar:
 
     mode = st.selectbox(
         "🧭 Choose a tool",
-        ["Finance Research", "Career Guide", "Excel AI"]
+        ["Finance Research", "Career Guide", "Excel AI", "Admin Panel"]
     )
 
     st.divider()
@@ -472,3 +472,123 @@ if mode == "Excel AI":
                 data=output.getvalue(),
                 file_name="bank_reconciliation.xlsx"
             )
+# ==================================================
+# ================== ADMIN PANEL ==================
+# ==================================================
+if mode == "Admin Panel":
+
+    # 🔒 Admin authority lock (ONLY you)
+    if st.session_state.user_email != "arun@gmail.com":
+        st.error("🚫 Access denied. Admins only.")
+        st.stop()
+
+    st.header("🛠️ Admin Panel")
+    st.caption("Internal analytics and beta user activity")
+    st.divider()
+
+    # -------- Load Logs --------
+    if os.path.exists(LOG_FILE):
+        logs_df = pd.read_csv(LOG_FILE)
+    else:
+        logs_df = pd.DataFrame(columns=["email", "login_time", "logout_time", "session_minutes"])
+
+    # -------- Load Allowed Users --------
+    allowed_users = load_allowed_users()
+
+    # ==================================================
+    # =============== SUMMARY METRICS ==================
+    # ==================================================
+    st.subheader("📊 Usage Summary")
+
+    total_logins = len(logs_df)
+    unique_users = logs_df["email"].nunique() if not logs_df.empty else 0
+    avg_session = (
+        round(logs_df["session_minutes"].dropna().mean(), 2)
+        if "session_minutes" in logs_df.columns and not logs_df["session_minutes"].dropna().empty
+        else 0
+    )
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    today_logins = (
+        logs_df["login_time"].astype(str).str.startswith(today).sum()
+        if not logs_df.empty
+        else 0
+    )
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Logins", total_logins)
+    col2.metric("Unique Users", unique_users)
+    col3.metric("Avg Session (min)", avg_session)
+    col4.metric("Today's Logins", today_logins)
+
+    st.divider()
+
+    # ==================================================
+    # ============== ALLOWED USERS =====================
+    # ==================================================
+    st.subheader("👥 Allowed Beta Users")
+
+    if allowed_users:
+        st.write(sorted(list(allowed_users)))
+        st.caption(f"Total beta users: {len(allowed_users)}")
+    else:
+        st.info("No beta users added yet.")
+
+    st.divider()
+
+    # ==================================================
+    # ============== MANAGE BETA USERS =================
+    # ==================================================
+    st.subheader("➕➖ Manage Beta Users")
+
+    # ---- Add new user ----
+    new_email = st.text_input("Add new user email")
+
+    if st.button("➕ Add User"):
+        if not new_email or "@" not in new_email:
+            st.error("Please enter a valid email address.")
+        else:
+            email_clean = new_email.strip().lower()
+            users = load_allowed_users()
+
+            if email_clean in users:
+                st.warning("User already exists.")
+            else:
+                users.add(email_clean)
+
+                with open("allowed_users.json", "w") as f:
+                    json.dump({"allowed_emails": sorted(list(users))}, f, indent=2)
+
+                st.success(f"✅ {email_clean} added successfully.")
+                st.rerun()
+
+    st.divider()
+
+    # ---- Remove existing user ----
+    users = sorted(list(load_allowed_users()))
+
+    if users:
+        remove_email = st.selectbox("Remove user", users)
+
+        if st.button("🗑️ Remove User"):
+            users_set = set(users)
+            users_set.discard(remove_email)
+
+            with open("allowed_users.json", "w") as f:
+                json.dump({"allowed_emails": sorted(list(users_set))}, f, indent=2)
+
+            st.success(f"🚫 {remove_email} removed successfully.")
+            st.rerun()
+    else:
+        st.info("No users available to remove.")
+
+    # ==================================================
+    # ============== LOGIN ACTIVITY LOG ================
+    # ==================================================
+    st.subheader("🧾 Login Activity Log")
+
+    if not logs_df.empty:
+        st.dataframe(logs_df.sort_values("login_time", ascending=False), use_container_width=True)
+    else:
+        st.info("No login activity yet.")
+
