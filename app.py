@@ -3,6 +3,7 @@ import google.generativeai as genai
 import pandas as pd
 import io
 import os
+import json
 from dotenv import load_dotenv
 
 # ==================================================
@@ -60,18 +61,37 @@ st.caption("Talk to an experienced finance professional")
 # ==================================================
 # ================== LOGIN =========================
 # ==================================================
+def load_allowed_users():
+    try:
+        with open("allowed_users.json", "r") as f:
+            data = json.load(f)
+            return set(email.lower() for email in data.get("allowed_emails", []))
+    except FileNotFoundError:
+        return set()
+
 def login_ui():
+
     st.subheader("🔐 Login to Finance AI")
     email = st.text_input("Email")
 
+    allowed_users = load_allowed_users()
+
     if st.button("Login / Continue"):
-        if email and "@" in email:
-            st.session_state.logged_in = True
-            st.session_state.user_email = email
-            st.success("✅ Logged in successfully")
-            st.rerun()
-        else:
+
+        if not email or "@" not in email:
             st.error("Please enter a valid email")
+            return
+
+        email_clean = email.strip().lower()
+
+        if email_clean not in allowed_users:
+            st.error("🚫 Access denied. Please contact the app developer for access.")
+            return
+
+        st.session_state.logged_in = True
+        st.session_state.user_email = email_clean
+        st.success("✅ Logged in successfully")
+        st.rerun()
 
 if not st.session_state.logged_in:
     login_ui()
@@ -324,4 +344,3 @@ if mode == "Excel AI":
                 data=output.getvalue(),
                 file_name="bank_reconciliation.xlsx"
             )
-
