@@ -249,7 +249,13 @@ if mode in ["Finance Research", "Career Guide"]:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
 
-    user_input = st.chat_input("Type your message...")
+    placeholder_text = (
+        "Ask about companies, markets, or financial analysis..."
+        if mode == "Finance Research"
+        else "Ask about careers, skills, or study paths..."
+    )
+
+    user_input = st.chat_input(placeholder_text)
 
     if user_input:
 
