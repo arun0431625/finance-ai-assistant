@@ -6,6 +6,7 @@ import os
 import json
 from datetime import datetime
 import csv
+import time
 from dotenv import load_dotenv
 
 # ==================================================
@@ -191,39 +192,64 @@ def build_prompt(mode, conversation):
     return conversation
 
 # ==================================================
-# ================== CHAT =========================
+# ================== CHAT UI =======================
 # ==================================================
+
 if mode in ["Finance Research", "Career Guide"]:
 
+    # --- Render existing chat history ---
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
 
+    # --- Chat input ---
     user_input = st.chat_input("Type your message...")
 
     if user_input:
 
-        if st.session_state.usage_count >= FREE_USAGE_LIMIT:
-            st.error("🚫 Free usage limit reached. Upgrade to Pro.")
-            st.stop()
+        # --- Add & immediately show user message ---
+        st.session_state.messages.append(
+            {"role": "user", "content": user_input}
+        )
 
-        st.session_state.messages.append({"role": "user", "content": user_input})
+        with st.chat_message("user"):
+            st.write(user_input)
 
-        convo = ""
-        for m in st.session_state.messages:
-            role = "User" if m["role"] == "user" else "AI"
-            convo += f"{role}: {m['content']}\n"
+        # --- Build conversation text ---
+        conversation = ""
+        for msg in st.session_state.messages:
+            role = "User" if msg["role"] == "user" else "AI"
+            conversation += f"{role}: {msg['content']}\n"
 
+        full_prompt = build_prompt(mode, conversation)
+
+        # --- AI response with typing effect ---
         with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
+
+            placeholder = st.empty()
+
+            try:
                 model = genai.GenerativeModel("gemini-3-flash-preview")
-                reply = model.generate_content(build_prompt(mode, convo)).text
-                st.write(reply)
+                response = model.generate_content(full_prompt)
+                reply = response.text
 
-        st.session_state.messages.append({"role": "assistant", "content": reply})
-        st.session_state.usage_count += 1
+                typed_text = ""
 
-# ==================================================
+                for char in reply:
+                    typed_text += char
+                    placeholder.markdown(typed_text)
+                    time.sleep(0.005)   # typing speed control
+
+                # --- Save assistant reply ---
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": reply}
+                )
+
+            except Exception as e:
+                st.error("AI service temporarily unavailable")
+                st.code(str(e))
+
+	# ==================================================
 # ================== EXCEL AI =====================
 # ==================================================
 if mode == "Excel AI":
