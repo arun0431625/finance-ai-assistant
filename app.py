@@ -28,6 +28,9 @@ if "last_mode" not in st.session_state:
     st.session_state.last_mode = None
 
 # Excel states
+if "combined_ready" not in st.session_state:
+    st.session_state.combined_ready = False
+
 if "combined_df" not in st.session_state:
     st.session_state.combined_df = None
 
@@ -644,6 +647,7 @@ if mode == "Admin Panel":
         st.dataframe(logs_df.sort_values("login_time", ascending=False), use_container_width=True)
     else:
         st.info("No login activity yet.")
+
 
 
 
