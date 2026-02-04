@@ -406,7 +406,7 @@ if mode == "Excel AI":
         # ===============================
         # Preview & Download
         # ===============================
-        if st.session_state.combined_ready and st.session_state.combined_df is not None:
+            if st.session_state.combined_ready and st.session_state.combined_df is not None:
     
             st.subheader("📄 Preview")
             st.dataframe(st.session_state.combined_df.head(50))
@@ -651,6 +651,7 @@ if mode == "Admin Panel":
         st.dataframe(logs_df.sort_values("login_time", ascending=False), use_container_width=True)
     else:
         st.info("No login activity yet.")
+
 
 
 
