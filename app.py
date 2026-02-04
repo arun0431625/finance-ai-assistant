@@ -312,111 +312,104 @@ if mode == "Excel AI":
     )
 
     if excel_task == "Combine Files":
-    
-        # 🔁 Reset / New Combine (SAFE & SIMPLE)
+    # 🔁 Reset / New Combine
         if st.button("🔁 Start New Combine", key="reset_combine_top"):
             st.session_state.combined_ready = False
             st.session_state.combined_df = None
             st.rerun()
-    
-        # Helper text
+
+        # 🔴 Phase-2 Patch: Helper text
         st.info(
             "📁 Upload 2 or more Excel files with the same column headers. "
             "The tool will merge them into one combined file."
         )
-    
-        # ===============================
-        # Upload Section
-        # ===============================
+
         uploaded_files = st.file_uploader(
             "Upload Excel files (same headers)",
             type=["xlsx", "xls"],
             accept_multiple_files=True
         )
-    
-        # ===============================
-        # Read & Validate Files
-        # ===============================
-        if uploaded_files and len(uploaded_files) >= 2 and not st.session_state.combined_ready:
-    
+
+        if uploaded_files and len(uploaded_files) >= 2:
+
             import tempfile
             import os
-    
+
             dfs = []
             ref_cols = None
-    
+
             for f in uploaded_files:
                 try:
                     file_name = f.name.lower()
-    
-                    # Save file temporarily (fixes xls/html/memory issues)
+
+                    # 🔹 Save uploaded file to temp location
                     with tempfile.NamedTemporaryFile(delete=False) as tmp:
                         tmp.write(f.getbuffer())
                         tmp_path = tmp.name
-    
-                    # Read Excel safely
+
                     if file_name.endswith(".xlsx"):
                         df = pd.read_excel(tmp_path, engine="openpyxl")
-    
+
                     elif file_name.endswith(".xls"):
                         try:
                             df = pd.read_excel(tmp_path, engine="xlrd")
                         except:
-                            df = pd.read_html(tmp_path)[0]
-    
+                            try:
+                                df = pd.read_html(tmp_path)[0]
+                            except:
+                                st.error(
+                                    f"❌ File format not supported: {f.name}\n\n"
+                                    f"Please open this file in Excel and do:\n"
+                                    f"Save As → Excel Workbook (.xlsx), then re-upload."
+                                )
+                                os.unlink(tmp_path)
+                                st.stop()
                     else:
                         st.error(f"❌ Unsupported file type: {f.name}")
                         os.unlink(tmp_path)
                         st.stop()
-    
+
                     os.unlink(tmp_path)
-    
+
                 except Exception as e:
                     st.error(f"❌ Error reading file: {f.name}")
                     st.code(str(e))
                     st.stop()
-    
-                # Header validation
+
                 if ref_cols is None:
                     ref_cols = list(df.columns)
-    
+
                 if list(df.columns) != ref_cols:
                     st.error(f"❌ Header mismatch in file: {f.name}")
                     st.stop()
-    
-                # Source file column
+
+                # ✅ Source file column
                 df["__source_file__"] = f.name
                 dfs.append(df)
-    
-            # ===============================
-            # Combine Button
-            # ===============================
+
+            # 🔴 BUTTON MUST BE OUTSIDE LOOP
             if st.button("🔄 Combine Files", key="combine_files_btn"):
-    
+
                 if st.session_state.usage_count >= FREE_USAGE_LIMIT:
                     st.error("🚫 Free usage limit reached.")
                     st.stop()
-    
-                with st.spinner("🔄 Combining files, please wait..."):
-                    st.session_state.combined_df = pd.concat(dfs, ignore_index=True)
-    
+
+                st.session_state.combined_df = pd.concat(dfs, ignore_index=True)
                 st.session_state.usage_count += 1
                 st.session_state.combined_ready = True
-    
-        # ===============================
-        # Preview & Download
-        # ===============================
+
+        # 🔴 Preview + Download (separate, stable)
         if st.session_state.combined_ready and st.session_state.combined_df is not None:
-    
+
             st.subheader("📄 Preview")
             st.dataframe(st.session_state.combined_df.head(50))
-    
+
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine="openpyxl") as writer:
                 st.session_state.combined_df.to_excel(
                     writer, index=False, sheet_name="Combined"
                 )
-    
+
             st.download_button(
                 "⬇️ Download Combined Excel",
                 data=output.getvalue(),
@@ -651,6 +644,7 @@ if mode == "Admin Panel":
         st.dataframe(logs_df.sort_values("login_time", ascending=False), use_container_width=True)
     else:
         st.info("No login activity yet.")
+
 
 
 
