@@ -9,6 +9,25 @@ import csv
 import time
 from dotenv import load_dotenv
 
+def auto_convert_xls_to_xlsx(tmp_path):
+    """
+    Tries to extract tables from a non-standard XLS file
+    and converts them into a temporary XLSX file.
+    Returns path of new XLSX file.
+    """
+    tables = pd.read_html(tmp_path)
+
+    if not tables:
+        raise ValueError("No tables found for conversion")
+
+    combined = pd.concat(tables, ignore_index=True)
+
+    new_xlsx_path = tmp_path + "_converted.xlsx"
+    combined.to_excel(new_xlsx_path, index=False)
+
+    return new_xlsx_path
+
+
 # ==================================================
 # ================== AUTH SESSION ==================
 # ==================================================
@@ -355,18 +374,30 @@ if mode == "Excel AI":
 
                     elif file_name.endswith(".xls"):
                         try:
+                            # 1️⃣ Try real Excel first
                             df = pd.read_excel(tmp_path, engine="xlrd")
+                    
                         except:
                             try:
+                                # 2️⃣ Try HTML based XLS
                                 df = pd.read_html(tmp_path)[0]
+                    
                             except:
-                                st.error(
-                                    f"❌ File format not supported: {f.name}\n\n"
-                                    f"Please open this file in Excel and do:\n"
-                                    f"Save As → Excel Workbook (.xlsx), then re-upload."
-                                )
-                                os.unlink(tmp_path)
-                                st.stop()
+                                try:
+                                    # 3️⃣ AUTO-CONVERT to XLSX
+                                    converted_path = auto_convert_xls_to_xlsx(tmp_path)
+                                    df = pd.read_excel(converted_path, engine="openpyxl")
+                    
+                                except:
+                                    st.error(
+                                        f"❌ This Excel file could not be processed automatically.\n\n"
+                                        f"Reason: This file is a system-generated report.\n\n"
+                                        f"✅ Recommended Fix:\n"
+                                        f"Open the file in Excel → Save As → Excel Workbook (.xlsx)\n"
+                                        f"Then upload again."
+                                    )
+                                    os.unlink(tmp_path)
+                                    st.stop()
                     else:
                         st.error(f"❌ Unsupported file type: {f.name}")
                         os.unlink(tmp_path)
@@ -647,6 +678,7 @@ if mode == "Admin Panel":
         st.dataframe(logs_df.sort_values("login_time", ascending=False), use_container_width=True)
     else:
         st.info("No login activity yet.")
+
 
 
 
