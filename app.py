@@ -374,7 +374,7 @@ if mode == "Excel AI":
 
                     elif file_name.endswith(".xls"):
                         try:
-                            # 1️⃣ Try real Excel first
+                            # 1️⃣ Try real Excel
                             df = pd.read_excel(tmp_path, engine="xlrd")
                     
                         except:
@@ -384,14 +384,17 @@ if mode == "Excel AI":
                     
                             except:
                                 try:
-                                    # 3️⃣ AUTO-CONVERT to XLSX
-                                    converted_path = auto_convert_xls_to_xlsx(tmp_path)
-                                    df = pd.read_excel(converted_path, engine="openpyxl")
+                                    # 3️⃣ Try CSV-style disguised XLS (GST / reports)
+                                    df = pd.read_csv(
+                                        tmp_path,
+                                        sep=None,
+                                        engine="python"
+                                    )
                     
                                 except:
                                     st.error(
                                         f"❌ This Excel file could not be processed automatically.\n\n"
-                                        f"Reason: This file is a system-generated report.\n\n"
+                                        f"Reason: This file is a system-generated report (GST / MIS type).\n\n"
                                         f"✅ Recommended Fix:\n"
                                         f"Open the file in Excel → Save As → Excel Workbook (.xlsx)\n"
                                         f"Then upload again."
@@ -678,6 +681,7 @@ if mode == "Admin Panel":
         st.dataframe(logs_df.sort_values("login_time", ascending=False), use_container_width=True)
     else:
         st.info("No login activity yet.")
+
 
 
 
